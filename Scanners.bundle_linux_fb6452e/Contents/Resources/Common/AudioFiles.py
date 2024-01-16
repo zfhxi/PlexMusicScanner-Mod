@@ -12,6 +12,11 @@ from mutagen.easymp4 import EasyMP4
 from mutagen.asf import ASF
 from mutagen.asf import ASFUnicodeAttribute
 
+#HACK
+from mutagen.wave import WAVE
+from mutagen.apev2 import APEv2
+from mutagen.dsf import DSF
+
 audio_exts = ['mp3', 'm4a', 'm4b', 'flac', 'aac', 'rm', 'rma', 'mpa', 'wav', 'wma', 'ogg', 'mp2', 'mka',
               'ac3', 'dts', 'ape', 'mpc', 'mp+', 'mpp', 'shn', 'oga', 'aiff', 'aif', 'wv', 'dsf', 'dsd', 'opus']
 various_artists = ['va', 'v/a', 'various', 'various artists', 'various artist(s)', 'various artitsen', 'verschiedene']
@@ -73,6 +78,21 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
           # When taken from the filename, we want to remove special characters.
           if title == None or parsed_title == True:
             title = new_title.strip(' -._')
+        #HACK
+        else:
+          # capturing group that matches any character that is not a digit between 0 and 9, zero or more times.
+          m = re.match("^([^0-9].*)([0-9]{1,3})$", file)
+          if m:
+            track, new_title = int(m.group(2)), m.group(1)
+            if track > 100 and track % 100 < 50:
+              disc = track / 100
+              track = track % 100
+            
+            # If we don't have a title, steal it from the filename.
+            # When taken from the filename, we want to remove special characters.
+            if title == None or parsed_title == True:
+              title = new_title.strip(' -._')
+
       else:
         # Check to see if the title starts with the track number and whack it.
         title = re.sub("^[ 0]*%s[ ]+" % track, '', title)
@@ -262,7 +282,23 @@ def getInfoFromTag(filename, language):
       compil = tag['compilation'][0]
     except:
       pass
-    #print artist, album, title, track, disc, TPE2, compil
+    return (artist, album, title, track, disc, TPE2, compil)
+  #HACK
+  elif filename.lower().endswith("aac"):
+    try: 
+      tag = EasyID3(filename)
+    except: 
+      return (None, None, None, None, None, None, None)
+    artist = mp3tagGrabber(tag, filename, 'artist', language, force=True)
+    album = mp3tagGrabber(tag, filename, 'album', language, force=True)
+    title = mp3tagGrabber(tag, filename, 'title', language, force=True)
+    track = cleanTrackAndDisk(mp3tagGrabber(tag, filename, 'track', language, 'tracknumber'))
+    disc = cleanTrackAndDisk(mp3tagGrabber(tag, filename, 'disk', language, 'discnumber'))
+    TPE2 = mp3tagGrabber(tag, filename, 'TPE2', language, 'albumartist')
+    try: 
+      compil = tag['compilation'][0]
+    except:
+      pass
     return (artist, album, title, track, disc, TPE2, compil)
   elif filename.lower().endswith("m4a") or filename.lower().endswith("m4b") or filename.lower().endswith("m4p"):
     try: 
@@ -274,6 +310,40 @@ def getInfoFromTag(filename, language):
       tag = FLAC(filename)
     except: 
       return (None, None, None, None, None, None, None)
+  #HACK
+  elif filename.lower().endswith("wav"):
+    try: 
+      tag = WAVE(filename)
+    except: 
+      return (None, None, None, None, None, None, None)
+    artist = mutagenGrabber(tag, 'TPE1', language)
+    album = mutagenGrabber(tag, 'TALB', language)
+    title = mutagenGrabber(tag, 'TIT2', language)
+    track = cleanTrackAndDisk(mutagenGrabber(tag, 'TRCK', language))
+    disc = cleanTrackAndDisk(mutagenGrabber(tag, 'discnumber', language))
+    TPE2 = mutagenGrabber(tag, 'TPE2', language) or mutagenGrabber(tag, 'album artist', language)
+    try: 
+      compil = tag['compilation'][0]
+    except:
+      pass
+    return (artist, album, title, track, disc, TPE2, compil)
+  elif filename.lower().endswith("dsf"):
+    try:
+      tag=DSF(filename)
+      # print tag.pprint()
+    except:
+      return (None, None, None, None, None, None, None)
+    artist = mutagenGrabber(tag, 'TPE1', language)
+    album = mutagenGrabber(tag, 'TALB', language)
+    title = mutagenGrabber(tag, 'TIT2', language)
+    track = cleanTrackAndDisk(mutagenGrabber(tag, 'TRCK', language))
+    disc = cleanTrackAndDisk(mutagenGrabber(tag, 'discnumber', language))
+    TPE2 = mutagenGrabber(tag, 'TPE2', language) or mutagenGrabber(tag, 'album artist', language)
+    try: 
+      compil = tag['compilation'][0]
+    except:
+      pass
+    return (artist, album, title, track, disc, TPE2, compil)
   elif filename.lower().endswith("ogg"):
     try: 
       tag = OggVorbis(filename)
@@ -295,6 +365,19 @@ def getInfoFromTag(filename, language):
     track = cleanTrackAndDisk(mutagenGrabber(tag, 'WM/TrackNumber', language))
     disc = cleanTrackAndDisk(mutagenGrabber(tag, 'WM/PartOfSet', language))
     TPE2 = getWMAstring(mutagenGrabber(tag, 'WM/AlbumArtist', language))
+    return (artist, album, title, track, disc, TPE2, compil)
+  elif filename.lower().endswith("ape"):
+    try:
+      tag = APEv2(filename)
+      # print tag.pprint()
+    except:
+      return (None, None, None, None, None, None, None)
+    artist = getWMAstring(mutagenGrabber(tag, 'ARTIST', language))
+    album = getWMAstring(mutagenGrabber(tag, 'ALBUM', language))
+    title = getWMAstring(mutagenGrabber(tag, 'TITLE', language))
+    track = cleanTrackAndDisk(mutagenGrabber(tag, 'TRACK', language))
+    disc = cleanTrackAndDisk(mutagenGrabber(tag, 'DISCNUMBER', language))
+    TPE2 = getWMAstring(mutagenGrabber(tag, 'AlbumArtist', language))
     return (artist, album, title, track, disc, TPE2, compil)
   else: #unsupported filetype
     return (None, None, None, None, None, None, None)
