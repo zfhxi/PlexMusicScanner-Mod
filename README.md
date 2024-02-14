@@ -30,7 +30,7 @@ sudo mv Scanners.bundle Scanners.bundle_bak
 4. 将下载的LocalMedia.bundle、Scanners.bundle文件夹放到资源库的Plug-ins-xxx文件夹下：
 ```bash
 # 注意修改权限，否则会出现代理不再后台显示
-sudo chmod -R 755 LocalMedia.bundle Scanners.bundle
+sudo chmod -R 775 LocalMedia.bundle Scanners.bundle
 # 如果/lib/systemd/system/plexmediaserver.service中的User=plex，那么执行：
 sudo chown -R plex:plex LocalMedia.bundle Scanners.bundle
 # 如果/lib/systemd/system/plexmediaserver.service中的User=root，那么执行：
