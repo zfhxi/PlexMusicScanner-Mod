@@ -161,3 +161,4 @@ cython_debug/
 plex_test
 **/zfhxi_test*
 **/.DS_Store
+**/mutagen_bak
