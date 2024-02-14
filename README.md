@@ -18,7 +18,7 @@
 前三项是韩风大佬添加的，dsf是我参照韩风大佬代码添加的。
 
 ## Usage
-1. 下载本项目的LocalMedia.bundle_xxx、Scanners.bundle_xxx文件夹。
+1. 下载本项目的LocalMedia.bundle、Scanners.bundle文件夹。
 2. 找到资源库的位置，
     * MacOS: /Applications/Plex Media Server.app/Contents/Resources
     * Linux: /usr/lib/plexmediaserver/Resources
@@ -27,15 +27,15 @@
 sudo mv LocalMedia.bundle LocalMedia.bundle_bak
 sudo mv Scanners.bundle Scanners.bundle_bak
 ```
-4. 将下载的LocalMedia.bundle_xxx、Scanners.bundle_xxx文件夹放到资源库的Plug-ins-xxx文件夹下，并去掉xxxx：
+4. 将下载的LocalMedia.bundle、Scanners.bundle文件夹放到资源库的Plug-ins-xxx文件夹下：
 ```bash
-sudo mv LocalMedia.bundle_xxx LocalMedia.bundle
-sudo mv Scanners.bundle_xxx Scanners.bundle
 # 注意修改权限，否则会出现代理不再后台显示
 sudo chmod -R 755 LocalMedia.bundle Scanners.bundle
+# 如果/lib/systemd/system/plexmediaserver.service中的User=plex，那么执行：
+sudo chown -R plex:plex LocalMedia.bundle Scanners.bundle
+# 如果/lib/systemd/system/plexmediaserver.service中的User=root，那么执行：
 sudo chown -R root:root LocalMedia.bundle Scanners.bundle
 ```
 5. [可选] 去下载timmy0209的[网易云音乐插件](https://github.com/timmy0209/WangYiYun.bundle)，参考[配套教程](https://zhuanlan.zhihu.com/p/218120206)并安装。
 6. 重启Plex Media Server。
 7. 然后去后台将音乐媒体库的扫描器更换为Plex Music Scanner(MOD)（推荐重新建立音乐媒体库，避免玄学的缓存导致不更新的问题）
-
