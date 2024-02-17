@@ -1,6 +1,11 @@
+#-*-coding:utf-8-*- 
 #
 # Copyright (c) 2015 Plex Development Team. All rights reserved.
 #
+import sys
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 import re
 import os.path
 from urllib import urlopen, quote

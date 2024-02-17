@@ -236,7 +236,6 @@ def getRootFile(filename):
 #####################################################################################################################
 
 def findSubtitles(part):
-
   RE_METAFILES = re.compile('^[\.~]')
 
   lang_sub_map = {}

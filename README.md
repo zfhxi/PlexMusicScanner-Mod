@@ -14,8 +14,12 @@
 * `wav`
 * `ape`
 * `dsf`
-
 前三项是韩风大佬添加的，dsf是我参照韩风大佬代码添加的。
+
+**New Feature**
+
+改善了对有声书的刮削：如果文件夹里有metadata.json文件，那么会优先使用该文件来设置音轨号。
+
 
 ## Usage
 1. 下载本项目的LocalMedia.bundle、Scanners.bundle文件夹。
@@ -39,3 +43,15 @@ sudo chown -R root:root LocalMedia.bundle Scanners.bundle
 5. [可选] 去下载timmy0209的[网易云音乐插件](https://github.com/timmy0209/WangYiYun.bundle)，参考[配套教程](https://zhuanlan.zhihu.com/p/218120206)并安装。
 6. 重启Plex Media Server。
 7. 然后去后台将音乐媒体库的扫描器更换为Plex Music Scanner(MOD)（推荐重新建立音乐媒体库，避免玄学的缓存导致不更新的问题）
+
+8. 关于有声书：
+    * 新建音乐类型媒体库，并添加有声书文件夹。
+    * 下载[timmy0209/Ximalaya.bundle](https://github.com/timmy0209/Ximalaya.bundle)，并进行如下设置，![16_28_59-1708273738132.png](https://img.idzc.top/picgoimg/2024/02/18/16_28_59-1708273738132.png)
+    ![16_32_15-1708273934793.png](https://img.idzc.top/picgoimg/2024/02/18/16_32_15-1708273934793.png)
+    ![16_32_38-1708273957310.png](https://img.idzc.top/picgoimg/2024/02/18/16_32_38-1708273957310.png)
+
+## Bugs
+以下是一些不影响使用的bug，如果你有解决方案，欢迎提出PR。
+1. [应该来自官方]每次手动扫描媒体库时，plex systemd service抛出警告`The '--scan' operation is deprecated and will be removed in future versions of Plex Media Server.`。
+2. [应该来自刮削器和官方？]有时艺术家刮削照片前，没有照片，plex systemd service抛出错误`Unable to open xxx`。
+3. [来自于LocalMedia.bundle和资源标签]对于有声书，刷新元数据可能会抛出形如`Exception serializing '中信书院 \n\r 诺曼·斯通'`，似乎是由于标签中多艺术家的分割符导致的。

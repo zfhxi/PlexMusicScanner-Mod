@@ -1,5 +1,10 @@
+#-*-coding:utf-8-*- 
 #!/usr/bin/env python
 
+import sys
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 import Filter, Media
 import os.path
 import re, os, string
@@ -16,6 +21,7 @@ from mutagen.asf import ASFUnicodeAttribute
 from mutagen.wave import WAVE
 from mutagen.apev2 import APEv2
 from mutagen.dsf import DSF
+import codecs, json
 ###########################
 
 
@@ -49,8 +55,37 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
   parentDir=os.path.dirname(files[0]).split(os.path.sep)[-1]
   Various_Artists='Various Artists_' + parentDir
   Unknown_Artist='[Unknown Artist]_' + parentDir
-#   Unknown_Album='[Unknown Album]_' + parentDir
+  # Unknown_Album='[Unknown Album]_' + parentDir
   Unknown_Album=parentDir
+  # for parse audiobook metadata
+  parentDirAbsPath=os.path.split(files[0])[0]
+  metadataFile=os.path.join(parentDirAbsPath,"metadata.json")
+  chapters=None
+  if os.path.isfile(metadataFile):
+    """
+    metadata.json should be like this:
+    {
+      "chapters": [
+        {
+          "id": 0,
+          "start": 0,
+          "end": 467.079002,
+          "title": "吞噬星空0000-预告"
+        },
+        ...
+       "authors": ["我吃西红柿"],
+    """
+    with codecs.open(metadataFile, 'r', encoding='utf-8') as fh:
+      data=json.load(fh)
+    chapters=data['chapters']
+    authors=','.join([x.encode('utf-8') for x in data['authors']])
+    book_title=data["title"].encode('utf-8')
+    chapter_map={}
+    # chapter_titles=[]
+    for c in chapters:
+        # chapter_titles.append(c['title'])
+        chapter_map[c['title'].encode('utf-8')]=c['id']
+        # print str(k)+'->'+str(v)
   ##########################
   for f in files:
     try:
@@ -62,7 +97,7 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
       if album_artist is not None and len(album_artist) == 0:
         album_artist = None
       
-      #print 'artist: ', artist, ' | album_artist: ', album_artist, ' | album: ', album, ' | disc: ', str(disc), ' | title: ', title, ' | compilation: ' + str(compil)
+    #   print 'artist: ', artist, ' | album_artist: ', album_artist, ' | album: ', album, ' | disc: ', str(disc), ' | title: ', title, ' | compilation: ' + str(compil)
       if album_artist and album_artist.lower() in various_artists: #(compil == '1' and (album_artist is None or len(album_artist.strip()) == 0)) or (
         album_artist = Various_Artists
       if artist == None or len(artist.strip()) == 0:
@@ -73,6 +108,20 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
         title = os.path.splitext(os.path.split(f)[1])[0]
         parsed_title = True
 
+      if chapters is not None:
+          album=book_title
+          tmp_title=os.path.splitext(os.path.split(f)[1])[0]
+        #   print "Parsing tmp title:", tmp_title, ' cur title ', title
+          new_track=chapter_map.get(tmp_title,None)
+        #   print 'Parsing track' , str(new_track)
+          # TODO: if new_track is None, we should try to match the title with chapter_titles by Levenshtein ratio.
+        #   print 'artist will become:', str(authors)
+          if artist == Unknown_Artist and len(authors) > 0:
+              artist=authors
+          if new_track is not None: 
+            track=new_track
+            if title!=tmp_title:
+                title=tmp_title
       if track == None:
         # See if we have a tracknumber in the title; if so, extract and strip it.
         file = os.path.splitext(os.path.basename(f))[0]
