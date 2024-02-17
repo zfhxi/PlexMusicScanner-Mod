@@ -45,6 +45,13 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
 
   if len(files) < 1: return
   albumTracks = []
+  ########## HACK ##########
+  parentDir=os.path.dirname(files[0]).split(os.path.sep)[-1]
+  Various_Artists='Various Artists_' + parentDir
+  Unknown_Artist='[Unknown Artist]_' + parentDir
+#   Unknown_Album='[Unknown Album]_' + parentDir
+  Unknown_Album=parentDir
+  ##########################
   for f in files:
     try:
       artist = None
@@ -57,11 +64,11 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
       
       #print 'artist: ', artist, ' | album_artist: ', album_artist, ' | album: ', album, ' | disc: ', str(disc), ' | title: ', title, ' | compilation: ' + str(compil)
       if album_artist and album_artist.lower() in various_artists: #(compil == '1' and (album_artist is None or len(album_artist.strip()) == 0)) or (
-        album_artist = 'Various Artists'
+        album_artist = Various_Artists
       if artist == None or len(artist.strip()) == 0:
-        artist = '[Unknown Artist]'
+        artist = Unknown_Artist
       if album == None or len(album.strip()) == 0:
-        album = '[Unknown Album]'
+        album = Unknown_Album
       if title == None or len(title) == 0: #use the filename for the title
         title = os.path.splitext(os.path.split(f)[1])[0]
         parsed_title = True
@@ -101,13 +108,13 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
       title = title.strip()
 
       (allbutParentDir, parentDir) = os.path.split(os.path.dirname(f))
-      if title.count(' - ') == 1 and artist == '[Unknown Artist]': # see if we can parse the title for artist - title
+      if title.count(' - ') == 1 and artist == Unknown_Artist: # see if we can parse the title for artist - title
         (artist, title) = title.split(' - ')
-        if len(artist) == 0: artist = '[Unknown Artist]'
-      elif parentDir and parentDir.count(' - ') == 1 and (artist == '[Unknown Artist]' or album == '[Unknown Album]'):  #see if we can parse the folder dir for artist - album
+        if len(artist) == 0: artist = Unknown_Artist
+      elif parentDir and parentDir.count(' - ') == 1 and (artist == Unknown_Artist or album == Unknown_Album):  #see if we can parse the folder dir for artist - album
         (pathArtist, pathAlbum) = parentDir.split(' - ')
-        if artist == '[Unknown Artist]': artist = pathArtist
-        if album == '[Unknown Album]': album = pathAlbum
+        if artist == Unknown_Artist: artist = pathArtist
+        if album == Unknown_Album: album = pathAlbum
       
       #make sure our last move is to encode to utf-8 before handing text back.
       t = Media.Track(cleanPass(artist), cleanPass(album), cleanPass(title), track, disc=disc, album_artist=cleanPass(album_artist), guid=None, album_guid=None)
@@ -164,7 +171,7 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
 
     if sameAlbum == True and sameArtist == False and blankAlbumArtist:
       if percentSameArtist < .9: #if the number of the same artist is less than X%, let's VA it (else, let's use the most common artist)
-        newArtist = 'Various Artists'
+        newArtist = 'Various Artists for '+ prevAlbum
       else:
         newArtist = maxArtistName
       for tt in albumsDict[a]:
