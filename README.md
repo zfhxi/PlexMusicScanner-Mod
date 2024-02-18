@@ -1,5 +1,7 @@
 # PlexMusicScanner-Mod
 
+⚠️：main分支的扫描器基于[linux-v.1.40.0.7998-c29d4c0c8](https://github.com/zfhxi/PlexMusicScanner-Mod/tree/linux-v.1.40.0.7998-c29d4c0c8)修改，使用前请备份你自己的LocalMedia.bundle、Scanners.bundle文件夹。
+
 代码 摘抄自[韩风大佬的b站视频](https://www.bilibili.com/video/BV1qr4y1S7KL/?vd_source=c4ce73eabed370236ad7d8ab6079980c)
 由于Plex Media Server的代理脚本是用Python 2写的，我不熟悉这种版本的Python，**脚本没有详细的测试，介意请勿使用!!!**
 
