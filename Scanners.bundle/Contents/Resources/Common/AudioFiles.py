@@ -1,10 +1,5 @@
-#-*-coding:utf-8-*- 
 #!/usr/bin/env python
 
-import sys
-if sys.getdefaultencoding() != 'utf-8':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
 import Filter, Media
 import os.path
 import re, os, string
@@ -16,14 +11,6 @@ from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 from mutagen.asf import ASF
 from mutagen.asf import ASFUnicodeAttribute
-
-########## HACK  ##########
-from mutagen.wave import WAVE
-from mutagen.apev2 import APEv2
-from mutagen.dsf import DSF
-import codecs, json
-###########################
-
 
 audio_exts = ['mp3', 'm4a', 'm4b', 'flac', 'aac', 'rm', 'rma', 'mpa', 'wav', 'wma', 'ogg', 'mp2', 'mka',
               'ac3', 'dts', 'ape', 'mpc', 'mp+', 'mpp', 'shn', 'oga', 'aiff', 'aif', 'wv', 'dsf', 'dsd', 'opus']
@@ -51,42 +38,6 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
 
   if len(files) < 1: return
   albumTracks = []
-  ########## HACK ##########
-  parentDir=os.path.dirname(files[0]).split(os.path.sep)[-1]
-  Various_Artists='Various Artists_' + parentDir
-  Unknown_Artist='[Unknown Artist]_' + parentDir
-  # Unknown_Album='[Unknown Album]_' + parentDir
-  Unknown_Album=parentDir
-  # for parse audiobook metadata
-  parentDirAbsPath=os.path.split(files[0])[0]
-  metadataFile=os.path.join(parentDirAbsPath,"metadata.json")
-  chapters=None
-  if os.path.isfile(metadataFile):
-    """
-    metadata.json should be like this:
-    {
-      "chapters": [
-        {
-          "id": 0,
-          "start": 0,
-          "end": 467.079002,
-          "title": "吞噬星空0000-预告"
-        },
-        ...
-       "authors": ["我吃西红柿"],
-    """
-    with codecs.open(metadataFile, 'r', encoding='utf-8') as fh:
-      data=json.load(fh)
-    chapters=data['chapters']
-    authors=','.join([x.encode('utf-8') for x in data['authors']])
-    book_title=data["title"].encode('utf-8')
-    chapter_map={}
-    # chapter_titles=[]
-    for c in chapters:
-        # chapter_titles.append(c['title'])
-        chapter_map[c['title'].encode('utf-8')]=c['id']
-        # print str(k)+'->'+str(v)
-  ##########################
   for f in files:
     try:
       artist = None
@@ -97,31 +48,17 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
       if album_artist is not None and len(album_artist) == 0:
         album_artist = None
       
-    #   print 'artist: ', artist, ' | album_artist: ', album_artist, ' | album: ', album, ' | disc: ', str(disc), ' | title: ', title, ' | compilation: ' + str(compil)
+      #print 'artist: ', artist, ' | album_artist: ', album_artist, ' | album: ', album, ' | disc: ', str(disc), ' | title: ', title, ' | compilation: ' + str(compil)
       if album_artist and album_artist.lower() in various_artists: #(compil == '1' and (album_artist is None or len(album_artist.strip()) == 0)) or (
-        album_artist = Various_Artists
+        album_artist = 'Various Artists'
       if artist == None or len(artist.strip()) == 0:
-        artist = Unknown_Artist
+        artist = '[Unknown Artist]'
       if album == None or len(album.strip()) == 0:
-        album = Unknown_Album
+        album = '[Unknown Album]'
       if title == None or len(title) == 0: #use the filename for the title
         title = os.path.splitext(os.path.split(f)[1])[0]
         parsed_title = True
 
-      if chapters is not None:
-          album=book_title
-          tmp_title=os.path.splitext(os.path.split(f)[1])[0]
-        #   print "Parsing tmp title:", tmp_title, ' cur title ', title
-          new_track=chapter_map.get(tmp_title,None)
-        #   print 'Parsing track' , str(new_track)
-          # TODO: if new_track is None, we should try to match the title with chapter_titles by Levenshtein ratio.
-        #   print 'artist will become:', str(authors)
-          if artist == Unknown_Artist and len(authors) > 0:
-              artist=authors
-          if new_track is not None: 
-            track=new_track
-            if title!=tmp_title:
-                title=tmp_title
       if track == None:
         # See if we have a tracknumber in the title; if so, extract and strip it.
         file = os.path.splitext(os.path.basename(f))[0]
@@ -136,20 +73,6 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
           # When taken from the filename, we want to remove special characters.
           if title == None or parsed_title == True:
             title = new_title.strip(' -._')
-        ########## HACK  ##########       
-        else:
-          m = re.match("^([^0-9].*)([0-9]{1,3})$", file)
-          if m:
-            track, new_title = int(m.group(2)), m.group(1)
-            if track > 100 and track % 100 < 50:
-              disc = track / 100
-              track = track % 100
-            
-            # If we don't have a title, steal it from the filename.
-            # When taken from the filename, we want to remove special characters.
-            if title == None or parsed_title == True:
-              title = new_title.strip(' -._')
-        ###########################       
       else:
         # Check to see if the title starts with the track number and whack it.
         title = re.sub("^[ 0]*%s[ ]+" % track, '', title)
@@ -157,13 +80,13 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
       title = title.strip()
 
       (allbutParentDir, parentDir) = os.path.split(os.path.dirname(f))
-      if title.count(' - ') == 1 and artist == Unknown_Artist: # see if we can parse the title for artist - title
+      if title.count(' - ') == 1 and artist == '[Unknown Artist]': # see if we can parse the title for artist - title
         (artist, title) = title.split(' - ')
-        if len(artist) == 0: artist = Unknown_Artist
-      elif parentDir and parentDir.count(' - ') == 1 and (artist == Unknown_Artist or album == Unknown_Album):  #see if we can parse the folder dir for artist - album
+        if len(artist) == 0: artist = '[Unknown Artist]'
+      elif parentDir and parentDir.count(' - ') == 1 and (artist == '[Unknown Artist]' or album == '[Unknown Album]'):  #see if we can parse the folder dir for artist - album
         (pathArtist, pathAlbum) = parentDir.split(' - ')
-        if artist == Unknown_Artist: artist = pathArtist
-        if album == Unknown_Album: album = pathAlbum
+        if artist == '[Unknown Artist]': artist = pathArtist
+        if album == '[Unknown Album]': album = pathAlbum
       
       #make sure our last move is to encode to utf-8 before handing text back.
       t = Media.Track(cleanPass(artist), cleanPass(album), cleanPass(title), track, disc=disc, album_artist=cleanPass(album_artist), guid=None, album_guid=None)
@@ -220,7 +143,7 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
 
     if sameAlbum == True and sameArtist == False and blankAlbumArtist:
       if percentSameArtist < .9: #if the number of the same artist is less than X%, let's VA it (else, let's use the most common artist)
-        newArtist = 'Various Artists for '+ prevAlbum
+        newArtist = 'Various Artists'
       else:
         newArtist = maxArtistName
       for tt in albumsDict[a]:
@@ -373,74 +296,6 @@ def getInfoFromTag(filename, language):
     disc = cleanTrackAndDisk(mutagenGrabber(tag, 'WM/PartOfSet', language))
     TPE2 = getWMAstring(mutagenGrabber(tag, 'WM/AlbumArtist', language))
     return (artist, album, title, track, disc, TPE2, compil)
-  ########## HACK  ##########
-  elif filename.lower().endswith("wav"):
-    try: 
-      tag = WAVE(filename)
-    except: 
-      return (None, None, None, None, None, None, None)
-    artist = mutagenGrabber(tag, 'TPE1', language)
-    album = mutagenGrabber(tag, 'TALB', language)
-    title = mutagenGrabber(tag, 'TIT2', language)
-    track = cleanTrackAndDisk(mutagenGrabber(tag, 'TRCK', language))
-    disc = cleanTrackAndDisk(mutagenGrabber(tag, 'discnumber', language))
-    TPE2 = mutagenGrabber(tag, 'TPE2', language) or mutagenGrabber(tag, 'album artist', language)
-    try: 
-      compil = tag['compilation'][0]
-    except:
-      pass
-    #print artist, album, title, track, disc, TPE2, compil
-    return (artist, album, title, track, disc, TPE2, compil)
-  elif filename.lower().endswith("ape"):
-    try:
-      tag = APEv2(filename)
-    except:
-      return (None, None, None, None, None, None, None)
-  elif filename.lower().endswith("dsf"):
-    try:
-      tag=DSF(filename)
-      # print tag.pprint()
-    except:
-      return (None, None, None, None, None, None, None)
-    artist = mutagenGrabber(tag, 'TPE1', language)
-    album = mutagenGrabber(tag, 'TALB', language)
-    title = mutagenGrabber(tag, 'TIT2', language)
-    track = cleanTrackAndDisk(mutagenGrabber(tag, 'TRCK', language))
-    disc = cleanTrackAndDisk(mutagenGrabber(tag, 'discnumber', language))
-    TPE2 = mutagenGrabber(tag, 'TPE2', language) or mutagenGrabber(tag, 'album artist', language)
-    try: 
-      compil = tag['compilation'][0]
-    except:
-      pass
-    return (artist, album, title, track, disc, TPE2, compil)
-  elif filename.lower().endswith("aac"):
-    try: 
-      tag = EasyID3(filename)
-    except: 
-      return (None, None, None, None, None, None, None)
-    artist = mp3tagGrabber(tag, filename, 'artist', language, force=True)
-    album = mp3tagGrabber(tag, filename, 'album', language, force=True)
-    title = mp3tagGrabber(tag, filename, 'title', language, force=True)
-    track = cleanTrackAndDisk(mp3tagGrabber(tag, filename, 'track', language, 'tracknumber'))
-    disc = cleanTrackAndDisk(mp3tagGrabber(tag, filename, 'disk', language, 'discnumber'))
-    TPE2 = mp3tagGrabber(tag, filename, 'TPE2', language, 'albumartist')
-    try: 
-      compil = tag['compilation'][0]
-    except:
-      pass
-    return (artist, album, title, track, disc, TPE2, compil)
-  elif filename.lower().endswith("m4a") or filename.lower().endswith("m4b") or filename.lower().endswith("m4p"):
-    try: 
-      tag = EasyMP4(filename)
-    except: 
-      return (None, None, None, None, None, None, None)
-  elif filename.lower().endswith("flac"):
-    try: 
-      tag = FLAC(filename)
-    except: 
-      return (None, None, None, None, None, None, None)
-  ###########################
-
   else: #unsupported filetype
     return (None, None, None, None, None, None, None)
   artist = mutagenGrabber(tag, 'artist', language)
