@@ -25,7 +25,7 @@
 
 
 ## Usage
-1. 下载本项目的LocalMedia.bundle、Scanners.bundle文件夹。
+1. 下载本项目的LocalMedia.bundle、Scanners.bundle文件夹（或者release页的Source code.zip解压）。
 2. 找到资源库的位置，
     * MacOS: /Applications/Plex Media Server.app/Contents/Resources
     * Linux: /usr/lib/plexmediaserver/Resources
