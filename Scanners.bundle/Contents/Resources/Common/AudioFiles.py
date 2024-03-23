@@ -1,3 +1,4 @@
+#-*-coding:utf-8-*- 
 #!/usr/bin/env python
 
 ########## HACK ##########
@@ -138,6 +139,20 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
           # When taken from the filename, we want to remove special characters.
           if title == None or parsed_title == True:
             title = new_title.strip(' -._')
+        ########## HACK  ##########       
+        else:
+          m = re.match("^([^0-9].*)([0-9]{1,3})$", file)
+          if m:
+            track, new_title = int(m.group(2)), m.group(1)
+            if track > 100 and track % 100 < 50:
+              disc = track / 100
+              track = track % 100
+            
+            # If we don't have a title, steal it from the filename.
+            # When taken from the filename, we want to remove special characters.
+            if title == None or parsed_title == True:
+              title = new_title.strip(' -._')
+        ###########################       
       else:
         # Check to see if the title starts with the track number and whack it.
         title = re.sub("^[ 0]*%s[ ]+" % track, '', title)

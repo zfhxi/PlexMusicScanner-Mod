@@ -132,7 +132,7 @@ class ID3AudioHelper(AudioHelper):
   def is_helper_for(cls, tagType):
     ########## HACK ##########
     # return tagType in ('EasyID3', 'EasyMP3', 'EasyTrueAudio', 'ID3', 'MP3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
-    return tagType in ('EasyID3', 'WAVE', 'EasyMP3', 'EasyTrueAudio', 'ID3', 'MP3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
+    return tagType in ('EasyID3', 'WAVE', 'EasyMP3', 'EasyTrueAudio', 'MP3', 'ID3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
     ##########################
 
   def get_album_title(self):
