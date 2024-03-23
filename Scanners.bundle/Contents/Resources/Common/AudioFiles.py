@@ -91,7 +91,8 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
         # print str(k)+'->'+str(v)
   ##########################
 
-  for f in files:
+  for _idx,f in enumerate(files):
+    # print("trying to parse from filename: %s" % f)
     try:
       artist = None
       parsed_title = False
@@ -127,10 +128,12 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
 
       if track == None:
         # See if we have a tracknumber in the title; if so, extract and strip it.
+        print("No track number found in metadata, trying to parse from filename: %s" % f)
         file = os.path.splitext(os.path.basename(f))[0]
         m = re.match("^([0-9]{1,3})([^0-9].*)$", file) or re.match(".*[ \-\.]+([0-9]{2})[ \-\.]+([^0-9].*)$", file) or re.match("^[a-f]([0-9]{2})[ \-\.]+([^0-9].*)$", file)
         if m:
           track, new_title = int(m.group(1)), m.group(2)
+          print("New track number found: %s" % track)
           if track > 100 and track % 100 < 50:
             disc = track / 100
             track = track % 100
@@ -143,6 +146,7 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
         else:
           m = re.match("^([^0-9].*)([0-9]{1,3})$", file)
           if m:
+            print("New track number found in file: %s" % track)
             track, new_title = int(m.group(2)), m.group(1)
             if track > 100 and track % 100 < 50:
               disc = track / 100
@@ -152,6 +156,9 @@ def Process(path, files, mediaList, subdirs, language=None, root=None):
             # When taken from the filename, we want to remove special characters.
             if title == None or parsed_title == True:
               title = new_title.strip(' -._')
+          else:
+              track=_idx+1
+              print("no track!!! - new track number set: %s" % track)
         ###########################       
       else:
         # Check to see if the title starts with the track number and whack it.
