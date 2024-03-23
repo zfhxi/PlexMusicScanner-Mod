@@ -1,8 +1,8 @@
 # PlexMusicScanner-Mod
 
-⚠️：main分支的扫描器基于[linux-v.1.40.0.7998-c29d4c0c8](https://github.com/zfhxi/PlexMusicScanner-Mod/tree/linux-v.1.40.0.7998-c29d4c0c8)修改，使用前请备份你自己的LocalMedia.bundle、Scanners.bundle文件夹。
+⚠️：main分支的扫描器基于对应版本的官方版修改，使用前请备份你自己的LocalMedia.bundle、Scanners.bundle文件夹。
 
-代码 摘抄自[韩风大佬的b站视频](https://www.bilibili.com/video/BV1qr4y1S7KL/?vd_source=c4ce73eabed370236ad7d8ab6079980c)
+代码参考自[韩风大佬的b站视频](https://www.bilibili.com/video/BV1qr4y1S7KL/?vd_source=c4ce73eabed370236ad7d8ab6079980c)
 由于Plex Media Server的代理脚本是用Python 2写的，我不熟悉这种版本的Python，**脚本没有详细的测试，介意请勿使用!!!**
 
 另外，音乐标签的读取依赖mutagen库，这个库5年前就放弃了对Python2的支持，我找到最后一版支持Python2的版本[7ed00ef](https://github.com/quodlibet/mutagen/blob/7ed00ef44614555d917d42bcd597d32040e40dab)，并粗暴地替换了官方PMS内置的mutagen库。
@@ -20,7 +20,8 @@
 
 **New Feature**
 
-改善了对有声书的刮削：如果文件夹里有metadata.json文件，那么会优先使用该文件来设置音轨号。
+* 改善了对有声书的刮削：如果文件夹里有metadata.json文件，那么会优先使用该文件来设置音轨号。
+* 可能不是好的特性：当音乐文件标签不包含音轨号时，强行指定音乐文件的音轨号为文件排序的编号。
 
 
 ## Usage
