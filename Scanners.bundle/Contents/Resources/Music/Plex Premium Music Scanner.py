@@ -1,6 +1,10 @@
 #
 # Copyright (c) 2015 Plex Development Team. All rights reserved.
 #
+import sys
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 import re
 import os.path
 from urllib import urlopen, quote
@@ -47,6 +51,12 @@ def Scan(path, files, media_list, subdirs, language=None, root=None, respect_tag
 
     # Make sure we have reliable track indices for all files and there are no dupes.
     tracks = {}
+    ########## HACK ##########
+    parentDir=os.path.dirname(files[0]).split(os.path.sep)[-1]
+    Various_Artists='Various Artists_' + parentDir
+    Unknown_Artist='[Unknown Artist]_' + parentDir
+    Unknown_Album= parentDir
+    #########################
     for f in files:
       try: 
         index = re.search(r'^([0-9]{1,2})[^0-9].*', os.path.split(f)[-1]).groups(0)[0]
@@ -77,7 +87,7 @@ def Scan(path, files, media_list, subdirs, language=None, root=None, respect_tag
         do_quick_match = False
 
       # We want to read all the tags for VA albums to pick up track artists.
-      if album_artist is not None and album_artist == 'Various Artists':
+      if album_artist is not None and album_artist == Various_Artists:
         Log('Skipping quick match for Various Artists album.')      
         do_quick_match = False
 
@@ -230,10 +240,10 @@ def Scan(path, files, media_list, subdirs, language=None, root=None, respect_tag
           track.artist_thumb_url = gn_track.artist_thumb_url
           
           # If the tags failed, fill in key data from Gracenote.
-          if track.album == '[Unknown Album]':
+          if track.album == Unknown_Album:
             track.album = gn_track.album
           
-          if track.artist == '[Unknown Artist]':
+          if track.artist == Unknown_Artist:
             track.artist = gn_track.artist
       
       media_list[:] = tag_media_list
@@ -342,7 +352,10 @@ def lookup(query_list, result_list, language=None, fingerprint=False, mixed=Fals
   parts = {}
 
   Log('Running Gracenote match on %d tracks with fingerprinting: %d and mixedContent: %d and multiple: %d' % (len(query_list), fingerprint, mixed, multiple))
+  Various_Artists = None
   for i, track in enumerate(query_list):
+    if Various_Artists is None and 'Various Artists' in track.artist:
+        Various_Artists = track.artist
     
     # We need to pass at least a path and an identifier for each track that we know about.
     args += '&tracks[%d].path=%s' % (i, quote(track.parts[0], ''))
@@ -414,7 +427,8 @@ def lookup(query_list, result_list, language=None, fingerprint=False, mixed=Fals
   number_of_artists = len(set([q.artist for q in query_list]))
   number_of_matched_tracks = len([i for i,q in enumerate(query_list) if str(i) in matched_tracks])
   
-  if (do_quick_match == True or multiple == False and number_of_artists == 1) and query_list[0].artist != '[Unknown Artist]':
+#   if (do_quick_match == True or multiple == False and number_of_artists == 1) and query_list[0].artist != '[Unknown Artist]':
+  if (do_quick_match == True or multiple == False and number_of_artists == 1) and '[Unknown Artist]' not in query_list[0].artist:
 
     # Start with a medium (and arbitrary) ratio.
     min_ratio = 0.60
@@ -457,9 +471,10 @@ def lookup(query_list, result_list, language=None, fingerprint=False, mixed=Fals
 
   # Check for Various Artists albums which come back matching to an artist, or movie name.
   number_of_album_artists = len(set([q.album_artist for q in query_list if q.album_artist]))
-  if number_of_artists > 1 and number_of_album_artists == 1 and query_list[0].album_artist and LevenshteinRatio(query_list[0].album_artist, 'Various Artists') > 0.9:
+#   if number_of_artists > 1 and number_of_album_artists == 1 and query_list[0].album_artist and LevenshteinRatio(query_list[0].album_artist, 'Various Artists') > 0.9:
+  if number_of_artists > 1 and number_of_album_artists == 1 and query_list[0].album_artist and LevenshteinRatio(query_list[0].album_artist, Various_Artists) > 0.9:
     Log('Using override artist of Various Artists')
-    artist_override = 'Various Artists'
+    artist_override = Various_Artists
 
     # Restore track artists from tags if necessary.
     for i, query_track in enumerate(query_list):

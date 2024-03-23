@@ -1,3 +1,4 @@
+#-*-coding:utf-8-*- 
 #
 # Copyright (c) 2010-2011 Plex Development Team. All rights reserved.
 #

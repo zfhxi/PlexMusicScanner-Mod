@@ -1,3 +1,8 @@
+#-*-coding:utf-8-*- 
+import sys
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 import os
 import helpers
 import struct
@@ -5,12 +10,18 @@ import struct
 from mutagen import File as MFile
 from mutagen.flac import Picture
 
+########## HACK ##########
+from mutagen.aac import AAC
+##########################
+
 class AudioHelper(object):
   def __init__(self, filename):
     self.filename = filename
 
 
 def AudioHelpers(filename):
+  ########## HACK ##########
+  """
   if len(filename) > 0:
     filename = helpers.unicodize(filename)
     try:
@@ -24,6 +35,28 @@ def AudioHelpers(filename):
         if cls.is_helper_for(type(tag).__name__):
           return cls(filename)
   return None
+  """
+  if len(filename) > 0:
+    filename = helpers.unicodize(filename)
+    if filename.lower().endswith("aac"):
+      try:
+        tag = AAC(filename, None, True)
+      except Exception, e:
+        Log('Error getting file details for %s: %s' % (filename, e))
+        return None
+    else:
+      try:
+        tag = MFile(filename, None, True)
+      except Exception, e:
+        Log('Error getting file details for %s: %s' % (filename, e))
+        return None
+
+    if tag is not None:
+      for cls in [ ID3AudioHelper, MP4AudioHelper, FLACAudioHelper, OGGAudioHelper, ASFAudioHelper, AACAudioHelper]:
+        if cls.is_helper_for(type(tag).__name__):
+          return cls(filename)
+  return None
+  ##########################
 
 
 def parse_genres(genre):
@@ -97,7 +130,10 @@ def cleanTrackAndDisk(inVal):
 class ID3AudioHelper(AudioHelper):
   @classmethod
   def is_helper_for(cls, tagType):
-    return tagType in ('EasyID3', 'EasyMP3', 'EasyTrueAudio', 'ID3', 'MP3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
+    ########## HACK ##########
+    # return tagType in ('EasyID3', 'EasyMP3', 'EasyTrueAudio', 'ID3', 'MP3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
+    return tagType in ('EasyID3', 'WAVE', 'EasyMP3', 'EasyTrueAudio', 'ID3', 'MP3', 'TrueAudio', 'AIFF') # All of these file types use ID3 tags like MP3
+    ##########################
 
   def get_album_title(self):
     return self.tags.get('TALB')
@@ -373,7 +409,10 @@ class MP4AudioHelper(AudioHelper):
 class FLACAudioHelper(AudioHelper):
   @classmethod
   def is_helper_for(cls, tagType):
-    return tagType in ['FLAC']
+    ########## HACK ##########
+    # return tagType in ['FLAC']
+    return tagType in ['FLAC', 'MonkeysAudio']
+    ##########################
 
   def get_artist_title(self):
     try:
@@ -508,6 +547,8 @@ class FLACAudioHelper(AudioHelper):
       Log('Exception reading release date' + str(e))
 
     # Posters
+    ########## HACK ##########
+    """
     valid_posters = []
     try:
       covers = tags.pictures
@@ -520,6 +561,33 @@ class FLACAudioHelper(AudioHelper):
             metadata.posters[poster_name] = Proxy.Media(cover.data)
     except Exception, e:
       Log('Exception adding posters: ' + str(e))
+    """
+    valid_posters = []
+    if self.filename.lower().endswith("ape"):
+      try:
+        obj = tags.get('COVER ART (FRONT)')
+        covers = obj.value[obj.value.find(b'\x00') + 1:]
+        if covers is not None and len(covers) > 0:
+          poster_name = hashlib.md5(covers).hexdigest()
+          valid_posters.append(poster_name)
+          if poster_name not in metadata.posters:
+            Log('Adding embedded cover art: ' + poster_name)
+            metadata.posters[poster_name] = Proxy.Media(covers)
+      except Exception, e:
+        Log('Exception adding posters: ' + str(e))
+    else:
+      try:
+        covers = tags.pictures
+        if prefs['albumPosters'] != 2 and covers is not None and len(covers) > 0:
+          for cover in covers:
+            poster_name = hashlib.md5(cover.data).hexdigest()
+            valid_posters.append(poster_name)
+            if poster_name not in metadata.posters:
+              Log('Adding embedded cover art: ' + poster_name)
+              metadata.posters[poster_name] = Proxy.Media(cover.data)
+      except Exception, e:
+        Log('Exception adding posters: ' + str(e))
+    ##########################
 
     return valid_posters
 
@@ -695,3 +763,128 @@ class ASFAudioHelper(AudioHelper):
       Log('Exception adding posters: ' + str(e))
 
     return valid_posters
+
+########## HACK ##########
+class AACAudioHelper(AudioHelper):
+  @classmethod
+  def is_helper_for(cls, tagType):
+    return tagType in ['AAC'] # All of these file types use AAC tags like AAC
+
+  def get_album_title(self):
+    return self.tags.get('TALB')
+
+  def get_album_sort_title(self):
+    return self.tags.get('TSOA')
+    
+  def get_track_sort_title(self):
+    return self.tags.get('TSOT')
+
+  def get_track_title(self):
+    return self.tags.get('TIT2')
+
+  def get_track_artist(self):
+    track_artist = self.tags.get('TPE1')
+    album_artist = self.get_artist_title()
+    if str(track_artist) != str(album_artist) or album_artist is None:
+      return track_artist
+    return None
+
+  def get_track_index(self):
+    try:
+      return int(cleanTrackAndDisk(self.tags.get('TRCK').text[0]))
+    except:
+      return None
+
+  def get_track_parent_index(self):
+    try:
+      return int(cleanTrackAndDisk(self.tags.get('TPOS').text[0]))
+    except:
+      return None
+
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
+
+    genre_list = []
+    try:
+      self.tags = tags = AAC(self.filename)
+      genres = self.tags.get('TCON')
+      if genres is not None and len(genres.text) > 0:
+        for genre in genres.text:
+          for sub_genre in parse_genres(genre):
+            if sub_genre.strip():
+              genre_list.append(sub_genre.strip())
+    except Exception, e:
+      Log('Exception reading TCON (genre): ' + str(e))
+    return genre_list
+
+  def get_artist_title(self):
+    try:
+      self.tags = tags = AAC(self.filename)
+      return self.tags.get('TPE2')
+    except:
+      pass
+
+    return None
+
+  def get_artist_sort_title(self):
+    try:
+      self.tags = tags = AAC(self.filename)
+      tag = self.tags.get('TSO2')
+      if tag:
+        return tag
+    
+      return self.tags.get('TSOP')
+    except:
+      pass
+      
+    return None
+
+  def process_metadata(self, metadata, prefs):
+    
+    Log('Reading AAC tags from: ' + self.filename)
+    try:
+      self.tags = tags = AAC(self.filename)
+      Log('Found tags: ' + str(tags.keys()))
+    except: 
+      Log('An error occurred while attempting to read AAC tags from ' + self.filename)
+      return
+
+    # Release Date (original_available_at)
+    metadata.originally_available_at = parse_datefield_select_highest(tags, 'TDRC', metadata.originally_available_at)
+
+    # Release Date (available_at)
+    metadata.available_at = parse_datefield_select_highest(tags, 'TDRL', metadata.available_at)
+
+    # Genres
+    try:
+      genres = tags.get('TCON') if prefs['genres'] == 2 else None
+      if genres is not None and len(genres.text) > 0:
+        for genre in genres.text:
+          for sub_genre in parse_genres(genre):
+            sub_genre_stripped = sub_genre.strip()
+            if sub_genre_stripped:
+              if sub_genre_stripped not in metadata.genres:
+                metadata.genres.add(sub_genre_stripped)
+    except Exception, e:
+      Log('Exception reading TCON (genre): ' + str(e))
+
+    # Posters
+    try:
+      valid_posters = []
+      frames = [f for f in tags if f.startswith('APIC:')]
+      for frame in frames:
+        if (tags[frame].mime == 'image/jpeg') or (tags[frame].mime == 'image/jpg'): ext = 'jpg'
+        elif tags[frame].mime == 'image/png': ext = 'png'
+        elif tags[frame].mime == 'image/gif': ext = 'gif'
+        else: ext = ''
+        poster_name = hashlib.md5(tags[frame].data).hexdigest()
+        valid_posters.append(poster_name)
+        if poster_name not in metadata.posters:
+          Log('Adding embedded APIC art: ' + poster_name)
+          metadata.posters[poster_name] = Proxy.Media(tags[frame].data, ext = ext)
+    except Exception, e:
+      Log('Exception adding posters: ' + str(e))
+
+    return valid_posters
+##########################
